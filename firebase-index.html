@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 Real-Time Gantt Chart - Metin & Onur Collaboration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .firebase-status {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4ecdc4;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .controls {
+            padding: 30px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            background: #f8f9fa;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .btn-primary { background: #667eea; }
+        .btn-success { background: #4ecdc4; }
+        .btn-warning { background: #feca57; }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .gantt-container {
+            padding: 30px;
+        }
+
+        .gantt-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .gantt-chart {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            min-height: 400px;
+        }
+
+        .gantt-timeline {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            padding: 15px 0;
+        }
+
+        .week-header {
+            flex: 1;
+            text-align: center;
+            font-weight: bold;
+            color: #495057;
+            min-width: 100px;
+        }
+
+        .gantt-body {
+            min-height: 300px;
+        }
+
+        .task-row {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e9ecef;
+            min-height: 60px;
+        }
+
+        .task-row:hover {
+            background: #f8f9fa;
+        }
+
+        .task-info {
+            min-width: 200px;
+            padding: 0 20px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .task-timeline {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        .task-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 30px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            min-width: 80px;
+        }
+
+        .task-bar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .user-indicator {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            color: white;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid white;
+        }
+
+        .activity-feed {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .activity-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .activity-user {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .activity-feed {
+                position: relative;
+                top: auto;
+                right: auto;
+                width: 100%;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔥 Real-Time Gantt Chart</h1>
+            <p>Metin & Onur Collaboration | Firebase Powered</p>
+            
+            <div class="firebase-status">
+                <div class="status-dot"></div>
+                <span><strong>Firebase Connected</strong> - Real-time sync aktif</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="addNewTask()">
+                ➕ Yeni Görev Ekle
+            </button>
+            <button class="btn btn-success" onclick="saveProject()">
+                💾 Projeyi Kaydet
+            </button>
+            <button class="btn btn-warning" onclick="autoSchedule()">
+                🤖 Otomatik Planla
+            </button>
+        </div>
+
+        <div class="gantt-container">
+            <div class="gantt-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTasks">0</div>
+                    <div>Toplam Görev</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completedTasks">0</div>
+                    <div>Tamamlanan</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeUsers">0</div>
+                    <div>Aktif Kullanıcı</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">100%</div>
+                    <div>Real-Time</div>
+                </div>
+            </div>
+
+            <div class="gantt-chart">
+                <div class="gantt-timeline">
+                    <div class="week-header">Hafta 1</div>
+                    <div class="week-header">Hafta 2</div>
+                    <div class="week-header">Hafta 3</div>
+                    <div class="week-header">Hafta 4</div>
+                    <div class="week-header">Hafta 5</div>
+                    <div class="week-header">Hafta 6</div>
+                </div>
+                
+                <div class="gantt-body" id="ganttBody">
+                    <!-- Görevler buraya dynamik olarak eklenecek -->
+                    <div style="text-align: center; padding: 50px; color: #6c757d;">
+                        <h3>🚀 Henüz görev yok</h3>
+                        <p>İlk görevi eklemek için "Yeni Görev Ekle" butonuna tıklayın!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="activity-feed" id="activityFeed">
+        <h3>📈 Aktivite Akışı</h3>
+        <div class="activity-item">
+            <span class="activity-user">System</span> Firebase bağlantısı kuruldu
+            <div style="font-size: 0.8rem; color: #adb5bd;">Az önce</div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module" src="firebase-realtime.js"></script>
+</body>
+</html>
