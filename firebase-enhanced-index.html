@@ -297,47 +297,116 @@
                 </div>
             </div>
 
-            <div class="stats-panel" id="statsPanel">
-                <h3>📊 Proje İstatistikleri</h3>
-                <div class="stats-grid">
+            <div class="progress-panel">
+                <h3>📊 Proje İlerlemesi</h3>
+                <div class="progress-stats">
                     <div class="stat-item">
-                        <div class="stat-number" id="totalTasks">0</div>
-                        <div class="stat-label">Toplam Görev</div>
+                        <span class="stat-label">Toplam Görev:</span>
+                        <span class="stat-value" id="totalTasks">15</span>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-number" id="completedTasks">0</div>
-                        <div class="stat-label">Tamamlanan</div>
+                        <span class="stat-label">Tamamlanan:</span>
+                        <span class="stat-value" id="completedTasks">0</span>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-number" id="inProgressTasks">0</div>
-                        <div class="stat-label">Devam Eden</div>
+                        <span class="stat-label">İlerleme:</span>
+                        <span class="stat-value" id="progressPercentage">0%</span>
                     </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="delayedTasks">0</div>
-                        <div class="stat-label">Geciken</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="overallProgress">0%</div>
-                        <div class="stat-label">Genel İlerleme</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="activeUsers">2</div>
-                        <div class="stat-label">🔥 Aktif Kullanıcı</div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <!-- Firebase Real-time Stats -->
+                <div class="firebase-stats" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+                    <h4 style="margin-bottom: 10px; color: #667eea;">🔥 Real-Time İstatistikler</h4>
+                    <div class="progress-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Aktif Kullanıcı:</span>
+                            <span class="stat-value" id="activeUsers">2</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Devam Eden:</span>
+                            <span class="stat-value" id="inProgressTasks">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Geciken:</span>
+                            <span class="stat-value" id="delayedTasks">0</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal for task editing -->
-    <div class="modal" id="taskModal">
+    <!-- Modal for editing tasks -->
+    <div id="taskModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modalTitle">Görev Düzenle</h2>
+                <h2>Görev Detayları</h2>
                 <span class="close">&times;</span>
             </div>
-            <div class="modal-body" id="modalBody">
-                <!-- Task editing form will be populated here -->
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label for="taskName">Görev Adı:</label>
+                        <input type="text" id="taskName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDescription">Açıklama:</label>
+                        <textarea id="taskDescription" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="startDate">Başlangıç Tarihi:</label>
+                        <input type="date" id="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="endDate">Bitiş Tarihi:</label>
+                        <input type="date" id="endDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskStatus">Durum:</label>
+                        <select id="taskStatus">
+                            <option value="not-started">Başlanmadı</option>
+                            <option value="in-progress">Devam Ediyor</option>
+                            <option value="completed">Tamamlandı</option>
+                            <option value="delayed">Gecikmiş</option>
+                            <option value="critical">Kritik</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskPriority">Öncelik:</label>
+                        <select id="taskPriority">
+                            <option value="low">Düşük</option>
+                            <option value="medium">Orta</option>
+                            <option value="high">Yüksek</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskProgress">İlerleme (%):</label>
+                        <input type="range" id="taskProgress" min="0" max="100" value="0">
+                        <span id="progressValue">0%</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskNotes">Notlar:</label>
+                        <textarea id="taskNotes" rows="4" placeholder="Bu görev hakkında notlar ekleyin..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskPhase">Faz:</label>
+                        <select id="taskPhase">
+                            <option value="1">Bölüm 1: Sistem Mimarı</option>
+                            <option value="2">Bölüm 2: Kullanıcı Yönetimi</option>
+                            <option value="3">Bölüm 3: Personel Yönetimi</option>
+                            <option value="4">Bölüm 4: İş Yönetimi</option>
+                            <option value="5">Bölüm 5: Bildirim & Analitik</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveTask" class="btn btn-primary">Görevi Kaydet</button>
+                <button type="button" id="deleteTask" class="btn btn-danger">Görevi Sil</button>
+                <button type="button" class="btn btn-secondary close-modal">İptal</button>
             </div>
         </div>
     </div>
