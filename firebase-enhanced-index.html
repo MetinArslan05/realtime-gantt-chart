@@ -169,6 +169,108 @@
 
         .metin { background: #FF6B6B; }
         .onur { background: #4ECDC4; }
+
+        /* Draggable Notes Styles */
+        .gantt-note {
+            position: absolute;
+            border-radius: 8px;
+            padding: 8px 12px;
+            min-width: 120px;
+            max-width: 200px;
+            font-size: 0.8rem;
+            line-height: 1.3;
+            cursor: move;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            word-wrap: break-word;
+        }
+
+        .gantt-note.yellow {
+            background: linear-gradient(135deg, #FFE066, #FFD700);
+            border: 2px solid #FFC107;
+        }
+
+        .gantt-note.blue {
+            background: linear-gradient(135deg, #87CEEB, #4682B4);
+            border: 2px solid #4169E1;
+        }
+
+        .gantt-note.green {
+            background: linear-gradient(135deg, #90EE90, #32CD32);
+            border: 2px solid #228B22;
+        }
+
+        .gantt-note.orange {
+            background: linear-gradient(135deg, #FFB347, #FF8C00);
+            border: 2px solid #FF6347;
+        }
+
+        .gantt-note.pink {
+            background: linear-gradient(135deg, #FFB6C1, #FF69B4);
+            border: 2px solid #FF1493;
+        }
+
+        .gantt-note:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .gantt-note.dragging {
+            opacity: 0.8;
+            transform: rotate(2deg);
+            z-index: 1000;
+        }
+
+        .note-content {
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .note-author {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FF6B6B;
+            color: white;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .note-delete {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #dc3545;
+            color: white;
+            font-size: 0.6rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid white;
+        }
+
+        .gantt-note:hover .note-delete {
+            display: flex;
+        }
+
+        .note-timestamp {
+            font-size: 0.6rem;
+            color: #666;
+            margin-top: 3px;
+        }
     </style>
 </head>
 <body>
@@ -198,6 +300,7 @@
             <p class="project-info">1 Temmuz - 10 Ekim 2025 (15 Hafta) | Aragon Bilişim | Real-Time Collaboration</p>
             <div class="controls">
                 <button id="addTask" class="btn btn-primary">➕ Görev Ekle</button>
+                <button id="addNote" class="btn btn-info">📝 Not Ekle</button>
                 <button id="autoSchedule" class="btn btn-warning">🤖 Otomatik Planla</button>
                 <div class="zoom-controls">
                     <button id="zoomOut" class="btn btn-outline" title="Uzaklaştır">🔍-</button>
@@ -411,6 +514,38 @@
         </div>
     </div>
 
+    <!-- Modal for adding notes -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📝 Yeni Not Ekle</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="noteForm">
+                    <div class="form-group">
+                        <label for="noteContent">Not İçeriği:</label>
+                        <textarea id="noteContent" rows="4" placeholder="Notunuzu buraya yazın..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="noteColor">Not Rengi:</label>
+                        <select id="noteColor">
+                            <option value="yellow">🟡 Sarı (Varsayılan)</option>
+                            <option value="blue">🔵 Mavi</option>
+                            <option value="green">🟢 Yeşil</option>
+                            <option value="orange">🟠 Turuncu</option>
+                            <option value="pink">🩷 Pembe</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="saveNote" class="btn btn-primary">📝 Notu Kaydet</button>
+                <button type="button" class="btn btn-secondary close-modal">İptal</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Include original JavaScript functionality -->
     <script src="script.js"></script>
     
@@ -453,6 +588,7 @@
         // Real-time listeners
         let firestoreTasks = [];
         let activities = [];
+        let firestoreNotes = [];
 
         // Initialize real-time sync
         function initializeRealTimeSync() {
@@ -483,6 +619,20 @@
                 
                 updateActivityFeed();
                 console.log(`📈 ${activities.length} aktivite yüklendi`);
+            });
+
+            // Listen to notes
+            const notesRef = collection(db, 'notes');
+            const notesQuery = query(notesRef, orderBy('createdAt', 'desc'));
+            
+            onSnapshot(notesQuery, (snapshot) => {
+                firestoreNotes = [];
+                snapshot.forEach((doc) => {
+                    firestoreNotes.push({ id: doc.id, ...doc.data() });
+                });
+                
+                renderNotes();
+                console.log(`📝 ${firestoreNotes.length} Firebase notu yüklendi`);
             });
         }
 
@@ -567,13 +717,190 @@
                 addActivity(`${currentUser} projeye katıldı`);
             }, 1000);
 
+            // Add note button event listener
+            document.getElementById('addNote').addEventListener('click', addNote);
+            
+            // Save note button event listener
+            document.getElementById('saveNote').addEventListener('click', saveNote);
+            
+            // Modal close functionality for note modal
+            const noteModal = document.getElementById('noteModal');
+            const noteCloseButtons = noteModal.querySelectorAll('.close, .close-modal');
+            noteCloseButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    noteModal.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                });
+            });
+
+            // Click outside modal to close
+            window.addEventListener('click', (event) => {
+                if (event.target === noteModal) {
+                    noteModal.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                }
+            });
+
             console.log('🔥 Real-Time Gantt Chart başlatıldı!');
         });
+
+        // Notes functionality
+        function renderNotes() {
+            // Clear existing notes
+            document.querySelectorAll('.gantt-note').forEach(note => note.remove());
+            
+            // Render Firebase notes
+            firestoreNotes.forEach(note => {
+                createNoteElement(note);
+            });
+        }
+
+        function createNoteElement(noteData) {
+            const ganttContainer = document.querySelector('.gantt-chart');
+            if (!ganttContainer) return;
+
+            const noteElement = document.createElement('div');
+            noteElement.className = `gantt-note ${noteData.color || 'yellow'}`;
+            noteElement.dataset.noteId = noteData.id;
+            noteElement.style.left = `${noteData.x || 400}px`;
+            noteElement.style.top = `${noteData.y || 200}px`;
+
+            const userInitial = noteData.createdBy ? noteData.createdBy.charAt(0).toUpperCase() : 'A';
+            const userColor = noteData.createdBy === 'Metin' ? '#FF6B6B' : '#4ECDC4';
+
+            noteElement.innerHTML = `
+                <div class="note-content">${noteData.content}</div>
+                <div class="note-timestamp">${new Date().toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}</div>
+                <div class="note-author" style="background: ${userColor}">${userInitial}</div>
+                <div class="note-delete" onclick="deleteNote('${noteData.id}')">×</div>
+            `;
+
+            // Add drag functionality
+            addNoteDragFunctionality(noteElement, noteData);
+            
+            ganttContainer.appendChild(noteElement);
+        }
+
+        function addNoteDragFunctionality(noteElement, noteData) {
+            let isDragging = false;
+            let startX, startY, startLeft, startTop;
+
+            noteElement.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('note-delete')) return;
+                
+                isDragging = true;
+                noteElement.classList.add('dragging');
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                startLeft = parseInt(noteElement.style.left) || 0;
+                startTop = parseInt(noteElement.style.top) || 0;
+                
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                
+                const newLeft = Math.max(0, startLeft + deltaX);
+                const newTop = Math.max(0, startTop + deltaY);
+                
+                noteElement.style.left = `${newLeft}px`;
+                noteElement.style.top = `${newTop}px`;
+            });
+
+            document.addEventListener('mouseup', async () => {
+                if (!isDragging) return;
+                
+                isDragging = false;
+                noteElement.classList.remove('dragging');
+                
+                // Update position in Firebase
+                const newX = parseInt(noteElement.style.left);
+                const newY = parseInt(noteElement.style.top);
+                
+                try {
+                    const noteRef = doc(db, 'notes', noteData.id);
+                    await updateDoc(noteRef, {
+                        x: newX,
+                        y: newY,
+                        lastModified: serverTimestamp(),
+                        lastModifiedBy: currentUser
+                    });
+                    
+                    await addActivity(`${currentUser} bir notu taşıdı`);
+                } catch (error) {
+                    console.error('Not pozisyonu güncellenirken hata:', error);
+                }
+            });
+        }
+
+        // Add note function
+        window.addNote = function() {
+            document.getElementById('noteModal').style.display = 'block';
+            document.body.classList.add('modal-open');
+        };
+
+        // Save note function
+        window.saveNote = async function() {
+            const content = document.getElementById('noteContent').value.trim();
+            const color = document.getElementById('noteColor').value;
+            
+            if (!content) {
+                alert('Lütfen not içeriği girin!');
+                return;
+            }
+
+            try {
+                const noteRef = doc(collection(db, 'notes'));
+                await setDoc(noteRef, {
+                    content: content,
+                    color: color,
+                    x: 400 + Math.random() * 200, // Random initial position
+                    y: 200 + Math.random() * 100,
+                    createdBy: currentUser,
+                    createdAt: serverTimestamp(),
+                    lastModified: serverTimestamp(),
+                    lastModifiedBy: currentUser
+                });
+                
+                await addActivity(`${currentUser} yeni not ekledi: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`);
+                
+                // Close modal and reset form
+                document.getElementById('noteModal').style.display = 'none';
+                document.body.classList.remove('modal-open');
+                document.getElementById('noteContent').value = '';
+                document.getElementById('noteColor').value = 'yellow';
+                
+                console.log('📝 Not başarıyla kaydedildi');
+            } catch (error) {
+                console.error('Not kaydedilirken hata:', error);
+                alert('Not kaydedilirken bir hata oluştu!');
+            }
+        };
+
+        // Delete note function
+        window.deleteNote = async function(noteId) {
+            if (!confirm('Bu notu silmek istediğinizden emin misiniz?')) return;
+            
+            try {
+                await deleteDoc(doc(db, 'notes', noteId));
+                await addActivity(`${currentUser} bir not sildi`);
+                console.log('📝 Not başarıyla silindi');
+            } catch (error) {
+                console.error('Not silinirken hata:', error);
+                alert('Not silinirken bir hata oluştu!');
+            }
+        };
 
         // Export functions to global scope for original script.js compatibility
         window.currentUser = currentUser;
         window.addActivity = addActivity;
         window.saveToFirebase = saveToFirebase;
+        window.renderNotes = renderNotes;
     </script>
 </body>
 </html>
