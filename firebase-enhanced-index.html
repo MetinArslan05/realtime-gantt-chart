@@ -271,6 +271,11 @@
             color: #666;
             margin-top: 3px;
         }
+
+        /* Ensure gantt-body has relative positioning for notes */
+        .gantt-body {
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -756,8 +761,9 @@
         }
 
         function createNoteElement(noteData) {
-            const ganttContainer = document.querySelector('.gantt-chart');
-            if (!ganttContainer) return;
+            // Notes should be positioned relative to the gantt-body, not gantt-chart
+            const ganttBody = document.querySelector('.gantt-body');
+            if (!ganttBody) return;
 
             const noteElement = document.createElement('div');
             noteElement.className = `gantt-note ${noteData.color || 'yellow'}`;
@@ -778,7 +784,7 @@
             // Add drag functionality
             addNoteDragFunctionality(noteElement, noteData);
             
-            ganttContainer.appendChild(noteElement);
+            ganttBody.appendChild(noteElement);
         }
 
         function addNoteDragFunctionality(noteElement, noteData) {
